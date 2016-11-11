@@ -5,37 +5,36 @@ package main
 
 import (
 	"log"
-	"sync"
 )
 
-func add(i, j int) int {
-	return i + j
-}
-
-func subtract(i, j int) int {
-	return i - j
-}
-
+/////
+// func definitions
+/////
 type Func func(int, int) int
 
-func execute(fnCh <-chan *Func, contCh <-chan struct{}) int {
-	fn := <-fnCh
-	<-contCh
+func newFunc(fn Func) *Func {
+	return &fn
+}
+
+var fn *Func
+
+/////
+// func definitions
+/////
+func execute(i, j int) int {
+	defer func() {
+		fn = newFunc(subtract)
+	}()
 	return (*fn)(1, 2)
 }
 
+func add(i, j int) int      { return i + j }
+func subtract(i, j int) int { return i - j }
+
 func main() {
-	var wg sync.WaitGroup
-	fnCh := make(chan *Func)
-	contCh := make(chan struct{})
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		log.Println(execute(fnCh, contCh))
-	}()
-	fn := Func(add)
-	fnCh <- &fn
-	fn = subtract
-	contCh <- struct{}{}
-	wg.Wait()
+	fn = newFunc(add)
+	log.Println(execute(1, 2))
+	log.Println(execute(1, 2))
+	fn = newFunc(add)
+	log.Println(execute(1, 2))
 }
